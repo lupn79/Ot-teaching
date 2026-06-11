@@ -399,7 +399,16 @@
   <!-- ═══ QUIZ ═══ -->
   <section class="section-panel" id="panel-quiz">
     <p class="section-intro">每題提供一個臨床情境，請根據 P/F/G/U 計分標準作答。答題後會立即顯示解說。題目順序每次隨機排列。</p>
-    <div class="card" id="quizCard">
+
+    <!-- 姓名輸入 -->
+    <div class="card" id="nameCard" style="text-align:center; padding:24px;">
+      <div style="font-size:16px; font-weight:600; color:var(--text); margin-bottom:6px;">請先輸入您的姓名</div>
+      <div style="font-size:13px; color:var(--gray-text); margin-bottom:16px;">完成練習後，成績會自動送出給老師</div>
+      <input id="studentName" type="text" placeholder="請輸入您的姓名" style="width:100%; max-width:280px; padding:10px 14px; border:1px solid var(--gray-border); border-radius:var(--radius-sm); font-size:15px; margin-bottom:14px; display:block; margin-left:auto; margin-right:auto;">
+      <button onclick="startQuiz()" style="padding:12px 32px; border-radius:var(--radius-sm); border:none; background:var(--teal); color:#fff; font-size:15px; font-weight:600; cursor:pointer;">開始練習</button>
+    </div>
+
+    <div class="card" id="quizCard" style="display:none;">
       <div class="progress-bar-bg"><div class="progress-bar-fill" id="qProgress" style="width:0%"></div></div>
       <div class="q-meta">
         <span class="q-num" id="qNum">題目 1 / 10</span>
@@ -414,11 +423,13 @@
     <div class="score-screen" id="scoreScreen">
       <div class="score-big" id="scoreBig"></div>
       <div class="score-label" id="scoreLabel"></div>
+      <div style="font-size:14px; color:var(--gray-text); margin-bottom:12px;" id="scoreNameLabel"></div>
       <div class="score-breakdown">
         <div class="sc-card"><div class="sc-num" id="scCorrect"></div><div class="sc-lbl">答對</div></div>
         <div class="sc-card"><div class="sc-num" id="scWrong"></div><div class="sc-lbl">答錯</div></div>
         <div class="sc-card"><div class="sc-num" id="scTotal"></div><div class="sc-lbl">總題數</div></div>
       </div>
+      <div id="submitStatus" style="font-size:13px; margin-bottom:12px; color:var(--teal-deep);"></div>
       <button class="restart-btn" onclick="restartQuiz()">重新練習</button>
     </div>
   </section>
@@ -690,6 +701,20 @@ function selectAnswer(chosen, q) {
 
 document.getElementById('qNextBtn').onclick = () => { qIdx++; renderQuestion(); };
 
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbziFc1n36NMU4HcZXNGmSWqpl0W88Xd_8peFo6r5lWW6hoef9_hsHYEG5bDiZoIuXfvCg/exec';
+let studentName = '';
+
+function startQuiz() {
+  const name = document.getElementById('studentName').value.trim();
+  if (!name) { alert('請先輸入您的姓名！'); return; }
+  studentName = name;
+  document.getElementById('nameCard').style.display = 'none';
+  document.getElementById('quizCard').style.display = 'block';
+  shuffled = shuffle(questions);
+  qIdx = 0; score = 0;
+  renderQuestion();
+}
+
 function showScore() {
   document.getElementById('quizCard').style.display = 'none';
   const ss = document.getElementById('scoreScreen');
@@ -697,17 +722,38 @@ function showScore() {
   const pct = Math.round(score/shuffled.length*100);
   document.getElementById('scoreBig').textContent = pct+'%';
   document.getElementById('scoreLabel').textContent = pct===100?'全部答對，臨床判斷力優秀！':pct>=80?'表現很好，再複習幾個情境吧。':pct>=60?'有進步空間，建議重複練習。':'建議重新複習計分標準後再練習。';
+  document.getElementById('scoreNameLabel').textContent = studentName + ' 的成績';
   document.getElementById('scCorrect').textContent = score;
   document.getElementById('scWrong').textContent = shuffled.length-score;
   document.getElementById('scTotal').textContent = shuffled.length;
+  // 自動送出成績
+  submitScore(studentName, pct, score, shuffled.length-score, shuffled.length);
+}
+
+function submitScore(name, pct, correct, wrong, total) {
+  const status = document.getElementById('submitStatus');
+  status.textContent = '成績送出中...';
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, score: pct, correct, wrong, total })
+  }).then(() => {
+    status.textContent = '✓ 成績已送出給老師';
+    status.style.color = 'var(--teal)';
+  }).catch(() => {
+    status.textContent = '⚠ 成績送出失敗，請告知老師';
+    status.style.color = 'var(--red)';
+  });
 }
 
 function restartQuiz() {
   qIdx = 0; score = 0;
-  shuffled = shuffle(questions);
-  document.getElementById('quizCard').style.display = 'block';
+  studentName = '';
+  document.getElementById('studentName').value = '';
+  document.getElementById('nameCard').style.display = 'block';
+  document.getElementById('quizCard').style.display = 'none';
   document.getElementById('scoreScreen').style.display = 'none';
-  renderQuestion();
 }
 
 // ─── TREE DATA ───
@@ -787,7 +833,6 @@ function switchMain(id) {
 
 // ─── INIT ───
 shuffled = shuffle(questions);
-renderQuestion();
 </script>
 </body>
 </html>
