@@ -1,0 +1,473 @@
+
+<h2 class="sr-only">姿勢控制評估流程決策樹 — 可點擊互動導覽</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.tree-wrap{padding:1rem 0;font-family:var(--font-sans)}
+.tab-row{display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap}
+.tab-btn{padding:7px 16px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);font-size:13px;color:var(--color-text-secondary);cursor:pointer;transition:all .15s}
+.tab-btn.active{background:var(--color-background-secondary);color:var(--color-text-primary);border-color:var(--color-border-primary);font-weight:500}
+.flow-area{display:none}
+.flow-area.active{display:block}
+.node-row{display:flex;align-items:flex-start;justify-content:center;gap:10px;margin-bottom:0}
+.connector-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-start}
+.v-line{width:2px;background:var(--color-border-secondary);flex:1;min-height:20px}
+.h-branch{display:flex;align-items:flex-start;justify-content:center;gap:0;position:relative;margin-bottom:0}
+.branch-line{height:2px;background:var(--color-border-secondary);flex:1;margin-top:0}
+.branch-col{display:flex;flex-direction:column;align-items:center}
+.node-box{border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);padding:10px 14px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;min-width:90px;max-width:140px}
+.node-box:hover{border-color:var(--color-border-primary);background:var(--color-background-secondary)}
+.node-box.start{background:#E1F5EE;border-color:#5DCAA5;min-width:160px;max-width:220px}
+.node-box.start .nb-title{color:#085041;font-weight:500;font-size:14px}
+.node-box.start .nb-sub{color:#0F6E56;font-size:12px;margin-top:3px}
+.node-box.decision{background:#EEEDFE;border-color:#AFA9EC;min-width:120px;max-width:170px}
+.node-box.decision .nb-title{color:#3C3489;font-weight:500;font-size:13px}
+.node-box.decision .nb-sub{color:#534AB7;font-size:11px;margin-top:3px}
+.node-box.score-u{background:#FCEBEB;border-color:#F09595}
+.node-box.score-u .nb-title{color:#791F1F;font-weight:500;font-size:15px}
+.node-box.score-u .nb-sub{color:#A32D2D;font-size:11px;margin-top:2px}
+.node-box.score-p{background:#FAEEDA;border-color:#FAC775}
+.node-box.score-p .nb-title{color:#633806;font-weight:500;font-size:15px}
+.node-box.score-p .nb-sub{color:#854F0B;font-size:11px;margin-top:2px}
+.node-box.score-f{background:#E6F1FB;border-color:#85B7EB}
+.node-box.score-f .nb-title{color:#0C447C;font-weight:500;font-size:15px}
+.node-box.score-f .nb-sub{color:#185FA5;font-size:11px;margin-top:2px}
+.node-box.score-g{background:#EAF3DE;border-color:#97C459}
+.node-box.score-g .nb-title{color:#27500A;font-weight:500;font-size:15px}
+.node-box.score-g .nb-sub{color:#3B6D11;font-size:11px;margin-top:2px}
+.yes-no{display:flex;gap:4px;margin-top:4px;justify-content:center}
+.yn-tag{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:500}
+.yn-y{background:#E1F5EE;color:#0F6E56}
+.yn-n{background:#FCEBEB;color:#A32D2D}
+.detail-panel{margin-top:1.25rem;background:var(--color-background-secondary);border-radius:var(--border-radius-lg);padding:14px 16px;border:0.5px solid var(--color-border-tertiary);display:none}
+.detail-panel.show{display:block}
+.dp-title{font-size:15px;font-weight:500;color:var(--color-text-primary);margin-bottom:6px}
+.dp-body{font-size:13px;color:var(--color-text-secondary);line-height:1.6}
+.dp-key{margin-top:8px;font-size:13px;color:var(--color-text-primary)}
+.dp-tag{display:inline-block;margin-top:4px;padding:3px 10px;border-radius:var(--border-radius-md);font-size:12px;font-weight:500}
+.close-btn{float:right;background:none;border:none;cursor:pointer;font-size:18px;color:var(--color-text-secondary);line-height:1}
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1rem}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--color-text-secondary)}
+.leg-dot{width:10px;height:10px;border-radius:50%}
+</style>
+
+<div class="tree-wrap">
+  <div class="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#1D9E75"></div>開始/條件</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#7F77DD"></div>判斷問題</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#E24B4A"></div>U 分數</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#BA7517"></div>P 分數</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#378ADD"></div>F 分數</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#639922"></div>G 分數</div>
+  </div>
+  <div class="tab-row">
+    <button class="tab-btn active" onclick="switchTab('sit-static')">坐姿靜態</button>
+    <button class="tab-btn" onclick="switchTab('sit-dynamic')">坐姿動態</button>
+    <button class="tab-btn" onclick="switchTab('stand-static')">站姿靜態</button>
+    <button class="tab-btn" onclick="switchTab('stand-dynamic')">站姿動態</button>
+    <button class="tab-btn" onclick="switchTab('head-trunk')">頭幹控制</button>
+  </div>
+
+  <!-- 坐姿靜態 -->
+  <div class="flow-area active" id="tab-sit-static">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+      <div class="node-box start" onclick="showDetail('ss-setup')">
+        <div class="nb-title">靜態坐姿平衡設置</div>
+        <div class="nb-sub">坐於 mat，雙手放腿上，雙腳平放</div>
+      </div>
+      <div style="width:2px;height:20px;background:var(--color-border-secondary)"></div>
+      <div class="node-box decision" onclick="showDetail('ss-q1')">
+        <div class="nb-title">病人能坐起來嗎？</div>
+        <div class="nb-sub">任何支撐皆無法維持</div>
+        <div class="yes-no"><span class="yn-tag yn-y">可以</span><span class="yn-tag yn-n">不能</span></div>
+      </div>
+      <div style="width:100%;display:flex;justify-content:center;position:relative;height:24px">
+        <div style="position:absolute;left:calc(50% - 80px);top:0;width:160px;height:2px;background:var(--color-border-secondary)"></div>
+        <div style="position:absolute;left:calc(50% - 80px);top:0;width:2px;height:24px;background:var(--color-border-secondary)"></div>
+        <div style="position:absolute;left:calc(50% + 78px);top:0;width:2px;height:24px;background:var(--color-border-secondary)"></div>
+      </div>
+      <div style="width:100%;display:flex;justify-content:center;gap:120px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+          <div class="node-box decision" onclick="showDetail('ss-q2')">
+            <div class="nb-title">隨機推動後，各方向均能回原位？</div>
+            <div class="yes-no"><span class="yn-tag yn-y">是</span><span class="yn-tag yn-n">否</span></div>
+          </div>
+          <div style="width:100%;display:flex;justify-content:center;position:relative;height:24px">
+            <div style="position:absolute;left:calc(50% - 55px);top:0;width:110px;height:2px;background:var(--color-border-secondary)"></div>
+            <div style="position:absolute;left:calc(50% - 55px);top:0;width:2px;height:24px;background:var(--color-border-secondary)"></div>
+            <div style="position:absolute;left:calc(50% + 53px);top:0;width:2px;height:24px;background:var(--color-border-secondary)"></div>
+          </div>
+          <div style="display:flex;gap:16px">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+              <div class="node-box decision" onclick="showDetail('ss-q3')">
+                <div class="nb-title">某方向無法回原位？</div>
+                <div class="yes-no"><span class="yn-tag yn-y">是</span><span class="yn-tag yn-n">否</span></div>
+              </div>
+              <div style="width:100%;display:flex;justify-content:center;position:relative;height:20px">
+                <div style="position:absolute;left:calc(50% - 45px);top:0;width:90px;height:2px;background:var(--color-border-secondary)"></div>
+                <div style="position:absolute;left:calc(50% - 45px);top:0;width:2px;height:20px;background:var(--color-border-secondary)"></div>
+                <div style="position:absolute;left:calc(50% + 43px);top:0;width:2px;height:20px;background:var(--color-border-secondary)"></div>
+              </div>
+              <div style="display:flex;gap:10px">
+                <div class="node-box score-f" onclick="showDetail('score-f-sit')">
+                  <div class="nb-title">F</div>
+                  <div class="nb-sub">某方向無法回原位</div>
+                </div>
+                <div class="node-box score-p" onclick="showDetail('score-p-sit')">
+                  <div class="nb-title">P</div>
+                  <div class="nb-sub">嘗試但需外在支持</div>
+                </div>
+              </div>
+            </div>
+            <div class="node-box score-g" onclick="showDetail('score-g-sit')">
+              <div class="nb-title">G</div>
+              <div class="nb-sub">任何方向均回原位</div>
+            </div>
+          </div>
+        </div>
+        <div class="node-box score-u" onclick="showDetail('score-u-sit')">
+          <div class="nb-title">U</div>
+          <div class="nb-sub">完全無法坐起</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 坐姿動態 -->
+  <div class="flow-area" id="tab-sit-dynamic">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+      <div class="node-box start" onclick="showDetail('sd-setup')">
+        <div class="nb-title">動態坐姿平衡設置</div>
+        <div class="nb-sub">坐於 mat，請病人向 BOS/LOS 外 reaching</div>
+      </div>
+      <div style="width:2px;height:20px;background:var(--color-border-secondary)"></div>
+      <div class="node-box decision" onclick="showDetail('sd-q1')">
+        <div class="nb-title">病人能坐起嗎？</div>
+        <div class="yes-no"><span class="yn-tag yn-y">可以</span><span class="yn-tag yn-n">不能</span></div>
+      </div>
+      <div style="width:100%;display:flex;justify-content:center;position:relative;height:24px">
+        <div style="position:absolute;left:calc(50% - 80px);top:0;width:160px;height:2px;background:var(--color-border-secondary)"></div>
+        <div style="position:absolute;left:calc(50% - 80px);top:0;width:2px;height:24px;background:var(--color-border-secondary)"></div>
+        <div style="position:absolute;left:calc(50% + 78px);top:0;width:2px;height:24px;background:var(--color-border-secondary)"></div>
+      </div>
+      <div style="width:100%;display:flex;justify-content:center;gap:100px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+          <div class="node-box decision" onclick="showDetail('sd-q2')">
+            <div class="nb-title">手一伸出就失衡？</div>
+            <div class="yes-no"><span class="yn-tag yn-y">是</span><span class="yn-tag yn-n">否</span></div>
+          </div>
+          <div style="width:100%;display:flex;justify-content:center;position:relative;height:24px">
+            <div style="position:absolute;left:calc(50% - 55px);top:0;width:110px;height:2px;background:var(--color-border-secondary)"></div>
+            <div style="position:absolute;left:calc(50% - 55px);top:0;width:2px;height:24px;background:var(--color-border-secondary)"></div>
+            <div style="position:absolute;left:calc(50% + 53px);top:0;width:2px;height:24px;background:var(--color-border-secondary)"></div>
+          </div>
+          <div style="display:flex;gap:16px">
+            <div class="node-box score-p" onclick="showDetail('score-p-dyn')">
+              <div class="nb-title">P</div>
+              <div class="nb-sub">手一出就失衡</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+              <div class="node-box decision" onclick="showDetail('sd-q3')">
+                <div class="nb-title">全部方向高度均成功？</div>
+                <div class="nb-sub">3 方向 × 3 高度</div>
+                <div class="yes-no"><span class="yn-tag yn-y">是</span><span class="yn-tag yn-n">否</span></div>
+              </div>
+              <div style="width:100%;display:flex;justify-content:center;position:relative;height:20px">
+                <div style="position:absolute;left:calc(50% - 45px);top:0;width:90px;height:2px;background:var(--color-border-secondary)"></div>
+                <div style="position:absolute;left:calc(50% - 45px);top:0;width:2px;height:20px;background:var(--color-border-secondary)"></div>
+                <div style="position:absolute;left:calc(50% + 43px);top:0;width:2px;height:20px;background:var(--color-border-secondary)"></div>
+              </div>
+              <div style="display:flex;gap:10px">
+                <div class="node-box score-g" onclick="showDetail('score-g-dyn')">
+                  <div class="nb-title">G</div>
+                  <div class="nb-sub">全部成功</div>
+                </div>
+                <div class="node-box score-f" onclick="showDetail('score-f-dyn')">
+                  <div class="nb-title">F</div>
+                  <div class="nb-sub">有任一失敗</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="node-box score-u" onclick="showDetail('score-u-dyn')">
+          <div class="nb-title">U</div>
+          <div class="nb-sub">完全無法坐起</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 站姿靜態 -->
+  <div class="flow-area" id="tab-stand-static">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+      <div class="node-box start" onclick="showDetail('ts-setup')">
+        <div class="nb-title">靜態站姿平衡設置</div>
+        <div class="nb-sub">站立，雙手置側，雙腳與 hip 同寬</div>
+      </div>
+      <div style="width:2px;height:20px;background:var(--color-border-secondary)"></div>
+      <div class="node-box decision" onclick="showDetail('ts-q1')">
+        <div class="nb-title">病人能站起來嗎？</div>
+        <div class="yes-no"><span class="yn-tag yn-y">可以</span><span class="yn-tag yn-n">不能</span></div>
+      </div>
+      <div style="width:100%;display:flex;justify-content:center;position:relative;height:24px">
+        <div style="position:absolute;left:calc(50% - 80px);top:0;width:160px;height:2px;background:var(--color-border-secondary)"></div>
+        <div style="position:absolute;left:calc(50% - 80px);top:0;width:2px;height:24px;background:var(--color-border-secondary)"></div>
+        <div style="position:absolute;left:calc(50% + 78px);top:0;width:2px;height:24px;background:var(--color-border-secondary)"></div>
+      </div>
+      <div style="width:100%;display:flex;justify-content:center;gap:120px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+          <div class="node-box decision" onclick="showDetail('ts-q2')">
+            <div class="nb-title">推動後各方向均能回原位？</div>
+            <div class="yes-no"><span class="yn-tag yn-y">是</span><span class="yn-tag yn-n">否</span></div>
+          </div>
+          <div style="width:100%;display:flex;justify-content:center;position:relative;height:24px">
+            <div style="position:absolute;left:calc(50% - 55px);top:0;width:110px;height:2px;background:var(--color-border-secondary)"></div>
+            <div style="position:absolute;left:calc(50% - 55px);top:0;width:2px;height:24px;background:var(--color-border-secondary)"></div>
+            <div style="position:absolute;left:calc(50% + 53px);top:0;width:2px;height:24px;background:var(--color-border-secondary)"></div>
+          </div>
+          <div style="display:flex;gap:16px">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+              <div class="node-box decision" onclick="showDetail('ts-q3')">
+                <div class="nb-title">某方向無法回原位？</div>
+                <div class="yes-no"><span class="yn-tag yn-y">是</span><span class="yn-tag yn-n">否</span></div>
+              </div>
+              <div style="width:100%;display:flex;justify-content:center;position:relative;height:20px">
+                <div style="position:absolute;left:calc(50% - 45px);top:0;width:90px;height:2px;background:var(--color-border-secondary)"></div>
+                <div style="position:absolute;left:calc(50% - 45px);top:0;width:2px;height:20px;background:var(--color-border-secondary)"></div>
+                <div style="position:absolute;left:calc(50% + 43px);top:0;width:2px;height:20px;background:var(--color-border-secondary)"></div>
+              </div>
+              <div style="display:flex;gap:10px">
+                <div class="node-box score-f" onclick="showDetail('score-f-ts')">
+                  <div class="nb-title">F</div>
+                  <div class="nb-sub">某方向無法回原位</div>
+                </div>
+                <div class="node-box score-p" onclick="showDetail('score-p-ts')">
+                  <div class="nb-title">P</div>
+                  <div class="nb-sub">需外在支持才能站</div>
+                </div>
+              </div>
+            </div>
+            <div class="node-box score-g" onclick="showDetail('score-g-ts')">
+              <div class="nb-title">G</div>
+              <div class="nb-sub">任何方向均回原位</div>
+            </div>
+          </div>
+        </div>
+        <div class="node-box score-u" onclick="showDetail('score-u-ts')">
+          <div class="nb-title">U</div>
+          <div class="nb-sub">完全無法站起</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 站姿動態 -->
+  <div class="flow-area" id="tab-stand-dynamic">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+      <div class="node-box start" onclick="showDetail('td-setup')">
+        <div class="nb-title">動態站姿平衡設置</div>
+        <div class="nb-sub">站立，請病人向 BOS/LOS 外 reaching，腳不跨步</div>
+      </div>
+      <div style="width:2px;height:20px;background:var(--color-border-secondary)"></div>
+      <div class="node-box decision" onclick="showDetail('td-q1')">
+        <div class="nb-title">病人能站起嗎？</div>
+        <div class="yes-no"><span class="yn-tag yn-y">可以</span><span class="yn-tag yn-n">不能</span></div>
+      </div>
+      <div style="width:100%;display:flex;justify-content:center;position:relative;height:24px">
+        <div style="position:absolute;left:calc(50% - 80px);top:0;width:160px;height:2px;background:var(--color-border-secondary)"></div>
+        <div style="position:absolute;left:calc(50% - 80px);top:0;width:2px;height:24px;background:var(--color-border-secondary)"></div>
+        <div style="position:absolute;left:calc(50% + 78px);top:0;width:2px;height:24px;background:var(--color-border-secondary)"></div>
+      </div>
+      <div style="width:100%;display:flex;justify-content:center;gap:100px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+          <div class="node-box decision" onclick="showDetail('td-q2')">
+            <div class="nb-title">手一伸出就失衡？</div>
+            <div class="yes-no"><span class="yn-tag yn-y">是</span><span class="yn-tag yn-n">否</span></div>
+          </div>
+          <div style="width:100%;display:flex;justify-content:center;position:relative;height:24px">
+            <div style="position:absolute;left:calc(50% - 55px);top:0;width:110px;height:2px;background:var(--color-border-secondary)"></div>
+            <div style="position:absolute;left:calc(50% - 55px);top:0;width:2px;height:24px;background:var(--color-border-secondary)"></div>
+            <div style="position:absolute;left:calc(50% + 53px);top:0;width:2px;height:24px;background:var(--color-border-secondary)"></div>
+          </div>
+          <div style="display:flex;gap:16px">
+            <div class="node-box score-p" onclick="showDetail('score-p-td')">
+              <div class="nb-title">P</div>
+              <div class="nb-sub">手一出就失衡</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+              <div class="node-box decision" onclick="showDetail('td-q3')">
+                <div class="nb-title">全部方向高度均成功且腳未跨步？</div>
+                <div class="yes-no"><span class="yn-tag yn-y">是</span><span class="yn-tag yn-n">否</span></div>
+              </div>
+              <div style="width:100%;display:flex;justify-content:center;position:relative;height:20px">
+                <div style="position:absolute;left:calc(50% - 45px);top:0;width:90px;height:2px;background:var(--color-border-secondary)"></div>
+                <div style="position:absolute;left:calc(50% - 45px);top:0;width:2px;height:20px;background:var(--color-border-secondary)"></div>
+                <div style="position:absolute;left:calc(50% + 43px);top:0;width:2px;height:20px;background:var(--color-border-secondary)"></div>
+              </div>
+              <div style="display:flex;gap:10px">
+                <div class="node-box score-g" onclick="showDetail('score-g-td')">
+                  <div class="nb-title">G</div>
+                  <div class="nb-sub">全部成功，腳未跨步</div>
+                </div>
+                <div class="node-box score-f" onclick="showDetail('score-f-td')">
+                  <div class="nb-title">F</div>
+                  <div class="nb-sub">有任一失敗</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="node-box score-u" onclick="showDetail('score-u-td')">
+          <div class="nb-title">U</div>
+          <div class="nb-sub">完全無法站起</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 頭幹控制 -->
+  <div class="flow-area" id="tab-head-trunk">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+      <div class="node-box start" onclick="showDetail('ht-setup')">
+        <div class="nb-title">頭部 / 軀幹控制評估</div>
+        <div class="nb-sub">評估 flexion、extension、lateral flexion、rotation</div>
+      </div>
+      <div style="width:2px;height:20px;background:var(--color-border-secondary)"></div>
+      <div class="node-box decision" onclick="showDetail('ht-q1')">
+        <div class="nb-title">病人有任何有意識的控制嗎？</div>
+        <div class="yes-no"><span class="yn-tag yn-y">有</span><span class="yn-tag yn-n">完全沒有</span></div>
+      </div>
+      <div style="width:100%;display:flex;justify-content:center;position:relative;height:24px">
+        <div style="position:absolute;left:calc(50% - 80px);top:0;width:160px;height:2px;background:var(--color-border-secondary)"></div>
+        <div style="position:absolute;left:calc(50% - 80px);top:0;width:2px;height:24px;background:var(--color-border-secondary)"></div>
+        <div style="position:absolute;left:calc(50% + 78px);top:0;width:2px;height:24px;background:var(--color-border-secondary)"></div>
+      </div>
+      <div style="width:100%;display:flex;justify-content:center;gap:120px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+          <div class="node-box decision" onclick="showDetail('ht-q2')">
+            <div class="nb-title">需外在支持才能完成？</div>
+            <div class="yes-no"><span class="yn-tag yn-y">是</span><span class="yn-tag yn-n">否</span></div>
+          </div>
+          <div style="width:100%;display:flex;justify-content:center;position:relative;height:24px">
+            <div style="position:absolute;left:calc(50% - 55px);top:0;width:110px;height:2px;background:var(--color-border-secondary)"></div>
+            <div style="position:absolute;left:calc(50% - 55px);top:0;width:2px;height:24px;background:var(--color-border-secondary)"></div>
+            <div style="position:absolute;left:calc(50% + 53px);top:0;width:2px;height:24px;background:var(--color-border-secondary)"></div>
+          </div>
+          <div style="display:flex;gap:16px">
+            <div class="node-box score-p" onclick="showDetail('score-p-ht')">
+              <div class="nb-title">P</div>
+              <div class="nb-sub">嘗試但需外在支持</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+              <div class="node-box decision" onclick="showDetail('ht-q3')">
+                <div class="nb-title">任一方向無法自主控制？</div>
+                <div class="yes-no"><span class="yn-tag yn-y">是</span><span class="yn-tag yn-n">否</span></div>
+              </div>
+              <div style="width:100%;display:flex;justify-content:center;position:relative;height:20px">
+                <div style="position:absolute;left:calc(50% - 45px);top:0;width:90px;height:2px;background:var(--color-border-secondary)"></div>
+                <div style="position:absolute;left:calc(50% - 45px);top:0;width:2px;height:20px;background:var(--color-border-secondary)"></div>
+                <div style="position:absolute;left:calc(50% + 43px);top:0;width:2px;height:20px;background:var(--color-border-secondary)"></div>
+              </div>
+              <div style="display:flex;gap:10px">
+                <div class="node-box score-f" onclick="showDetail('score-f-ht')">
+                  <div class="nb-title">F</div>
+                  <div class="nb-sub">任一方向無法自主</div>
+                </div>
+                <div class="node-box score-g" onclick="showDetail('score-g-ht')">
+                  <div class="nb-title">G</div>
+                  <div class="nb-sub">各方向均可自主控制</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="node-box score-u" onclick="showDetail('score-u-ht')">
+          <div class="nb-title">U</div>
+          <div class="nb-sub">完全無法有意識控制</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail panel -->
+  <div class="detail-panel" id="detailPanel">
+    <button class="close-btn" onclick="closeDetail()" aria-label="關閉">×</button>
+    <div class="dp-title" id="dpTitle"></div>
+    <div class="dp-body" id="dpBody"></div>
+    <div class="dp-key" id="dpKey"></div>
+  </div>
+</div>
+
+<script>
+const details = {
+  'ss-setup': {title:'靜態坐姿平衡 — 設置要點', body:'病人坐在 mat 上，雙手放於腿上，雙腳平放在地。雙膝勿併攏，打開與 hip 同寬。指導語：「我會推你，請你盡量坐穩，不要被我推倒。」隨機推前、後、左、右各方向，範圍在 BOS/LOS 內。治療師站前方，雙手隨時預防跌倒。', key:''},
+  'ss-q1': {title:'關鍵判斷：能否坐起？', body:'先確認病人是否能坐起。無法坐起者（給予任何支撐都無法維持坐姿）→ 直接給 U，不需繼續測試。', key:''},
+  'ss-q2': {title:'關鍵判斷：各方向均能回原位？', body:'隨機推動後，觀察病人能否將身體重心調整回原位。若任何方向均成功 → G；若有任一方向失敗 → 進一步判斷 F 或 P。', key:''},
+  'ss-q3': {title:'F vs P 的關鍵差異', body:'F：病人能坐穩，但被推後某方向無法回到原位（但仍維持坐姿）。\nP：病人嘗試保持坐姿，但需要外在支持才能坐著（即使沒被推也維持不住）。', key:''},
+  'sd-setup': {title:'動態坐姿平衡 — 設置要點', body:'病人坐在 mat 上，請病人手伸出碰治療師的手（或取物），再回原位。Reaching 範圍在 BOS/LOS 外，但屁股不離 mat。測 3 個方向（前方、好側 45°、患側 45°）× 3 個高度（胸口、膝蓋、地面）共 9 次。', key:''},
+  'sd-q1': {title:'關鍵判斷：能否坐起？', body:'無法坐起者 → 直接給 U，不需進行 reaching 測試。', key:''},
+  'sd-q2': {title:'P 的判斷標準', body:'手一伸出去就立刻失去平衡，無法完成 reaching 動作 → P（poor）。', key:''},
+  'sd-q3': {title:'G vs F 的判斷標準', body:'G：3 方向 × 3 高度，每次 reaching 後身體都能回到原位，全部 9 次均成功。\nF：有任一方向或任一高度的 reaching 後無法回到原位。', key:''},
+  'ts-setup': {title:'靜態站姿平衡 — 設置要點', body:'病人站在地上，雙手放於身側，雙膝勿併攏，雙腳打開與 hip 同寬。指導語：「我會推你，請你盡量站穩，不要被我推倒。」治療師站在前方或患側，一手拉住病人褲頭，隨時預防跌倒。', key:''},
+  'ts-q1': {title:'關鍵判斷：能否站起？', body:'無法站起者（給予任何支撐都無法維持站姿）→ 直接給 U，不需繼續測試。', key:''},
+  'ts-q2': {title:'關鍵判斷：各方向均能回原位？', body:'隨機推動後，觀察病人能否將身體重心調整回原位。任何方向均成功 → G。', key:''},
+  'ts-q3': {title:'F vs P 的關鍵差異（站姿）', body:'F：可以站穩，但被推後某方向無法回到原位。\nP：嘗試站立但需要外在支持才能維持站姿。', key:''},
+  'td-setup': {title:'動態站姿平衡 — 設置要點', body:'病人站立，請病人手伸出達 BOS/LOS 外的目標，再回原位。重點：雙腳不跨步，膝蓋可彎。同樣測 3 方向 × 3 高度共 9 次。治療師站在患側一手拉住褲頭。', key:''},
+  'td-q1': {title:'關鍵判斷：能否站起？', body:'無法站起者 → 直接給 U。', key:''},
+  'td-q2': {title:'P 的判斷標準（站姿動態）', body:'手一伸出去就立刻失去平衡 → P。', key:''},
+  'td-q3': {title:'G vs F 的判斷標準（站姿動態）', body:'G：9 次 reaching 全部成功，雙腳始終未跨步。\nF：有任一方向或高度失敗，或 reaching 時跨步。', key:'跨步是 F/G 的重要判斷依據！'},
+  'ht-setup': {title:'頭部 / 軀幹控制 — 設置要點', body:'分別評估 flexion、extension、lateral flexion、rotation 四個方向。頭部與軀幹控制使用相同的 U/P/F/G 評分標準，分開記錄。', key:''},
+  'ht-q1': {title:'關鍵判斷：有無任何有意識控制？', body:'完全無法有意識控制頭部或軀幹（任何方向均無反應）→ U。', key:''},
+  'ht-q2': {title:'P 的判斷標準（頭幹控制）', body:'有嘗試控制，但無法完成，需要外在支持才能維持位置 → P。', key:''},
+  'ht-q3': {title:'F vs G 的判斷標準（頭幹控制）', body:'F：任一方向無法自主控制。\nG：可自主轉動頭部/軀幹，並保持在任何位置。', key:''},
+  'score-u-sit': {title:'U — Unable（坐姿靜態）', body:'完全無法完成動作。無法坐起的病人，給予任何支撐都無法維持坐姿。', key:'關鍵：即使給支撐也無法維持。', tag:'U', color:'score-u'},
+  'score-p-sit': {title:'P — Poor（坐姿靜態）', body:'嘗試保持坐姿，但無法完成，一定要有外在支持才能坐著。', key:'關鍵：有嘗試但需支持。', tag:'P', color:'score-p'},
+  'score-f-sit': {title:'F — Fair（坐姿靜態）', body:'可在 BOS/LOS 範圍內坐穩，但給予隨機的平衡干擾，有任一方向會倒（推病人時身體無法回原位）。', key:'關鍵：某一方向無法回原位就給 F。', tag:'F', color:'score-f'},
+  'score-g-sit': {title:'G — Good（坐姿靜態）', body:'給予隨機的平衡干擾，可成功控制姿勢，將身體重心調整回原位。推病人時，任何方向身體都可回到原位。', key:'關鍵：任何方向都能回原位。', tag:'G', color:'score-g'},
+  'score-u-dyn': {title:'U — Unable（坐姿動態）', body:'完全無法完成動作。無法坐起的病人，給予任何支撐都無法維持坐姿。', key:'', tag:'U', color:'score-u'},
+  'score-p-dyn': {title:'P — Poor（坐姿動態）', body:'嘗試保持坐姿穩定，但無法完成。手一伸出去就失去平衡。', key:'關鍵：伸手的瞬間即失衡。', tag:'P', color:'score-p'},
+  'score-f-dyn': {title:'F — Fair（坐姿動態）', body:'各方位的 reaching 中，有任一方向、任一高度會失去平衡或身體無法回到原位。', key:'關鍵：只要有一個組合失敗就是 F。', tag:'F', color:'score-f'},
+  'score-g-dyn': {title:'G — Good（坐姿動態）', body:'各方位的 reaching（3 方向 × 3 高度共 9 次），都可成功控制姿勢，將身體重心調整回原位，屁股不離 mat。', key:'關鍵：9 次全部成功。', tag:'G', color:'score-g'},
+  'score-u-ts': {title:'U — Unable（站姿靜態）', body:'完全無法完成動作。無法站起的病人，給予任何支撐都無法維持站姿。', key:'', tag:'U', color:'score-u'},
+  'score-p-ts': {title:'P — Poor（站姿靜態）', body:'嘗試保持站姿，但無法完成，一定要有支持才能站著。', key:'', tag:'P', color:'score-p'},
+  'score-f-ts': {title:'F — Fair（站姿靜態）', body:'可在 BOS/LOS 的範圍內站穩，但給予隨機的平衡干擾，有任一方向會倒或無法回原位。', key:'關鍵：某一方向無法回原位就給 F。', tag:'F', color:'score-f'},
+  'score-g-ts': {title:'G — Good（站姿靜態）', body:'給予隨機的平衡干擾，可成功控制姿勢，將身體重心調整回原位。推病人時，任何方向都可回到原位。', key:'', tag:'G', color:'score-g'},
+  'score-u-td': {title:'U — Unable（站姿動態）', body:'完全無法完成動作。無法站起的病人，給予任何支撐都無法維持站姿。', key:'', tag:'U', color:'score-u'},
+  'score-p-td': {title:'P — Poor（站姿動態）', body:'嘗試保持站姿穩定，但無法完成。手一伸出去就失去平衡。', key:'', tag:'P', color:'score-p'},
+  'score-f-td': {title:'F — Fair（站姿動態）', body:'各方位的 reaching 中，有任一方向、任一高度無法回原位，或 reaching 時雙腳有跨步。', key:'關鍵：跨步 = 失去穩定支撐，給 F。', tag:'F', color:'score-f'},
+  'score-g-td': {title:'G — Good（站姿動態）', body:'各方位的 reaching 都可成功控制姿勢，回到原位，且雙腳始終未跨步。', key:'關鍵：9 次全成功 + 腳未跨步。', tag:'G', color:'score-g'},
+  'score-u-ht': {title:'U — Unable（頭幹控制）', body:'無法有意識地控制頭部或軀幹，完全無自主動作。', key:'', tag:'U', color:'score-u'},
+  'score-p-ht': {title:'P — Poor（頭幹控制）', body:'嘗試要保持位置，但無法完成，需有外在支持。', key:'', tag:'P', color:'score-p'},
+  'score-f-ht': {title:'F — Fair（頭幹控制）', body:'任一方向（flexion/extension/lateral flexion/rotation）無法自主控制。', key:'關鍵：4 個方向中有任一個失敗就給 F。', tag:'F', color:'score-f'},
+  'score-g-ht': {title:'G — Good（頭幹控制）', body:'可自主轉動頭部/軀幹，並保持頭部/軀幹在任何位置。4 個方向均可自主完成。', key:'', tag:'G', color:'score-g'},
+};
+
+function showDetail(id) {
+  const d = details[id];
+  if (!d) return;
+  document.getElementById('dpTitle').textContent = d.title;
+  document.getElementById('dpBody').textContent = d.body;
+  const keyEl = document.getElementById('dpKey');
+  if (d.key) {
+    keyEl.textContent = d.key;
+    keyEl.style.display = 'block';
+    keyEl.style.marginTop = '8px';
+    keyEl.style.fontWeight = '500';
+  } else { keyEl.style.display = 'none'; }
+  const panel = document.getElementById('detailPanel');
+  panel.className = 'detail-panel show';
+  panel.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function closeDetail() {
+  document.getElementById('detailPanel').className = 'detail-panel';
+}
+
+function switchTab(id) {
+  document.querySelectorAll('.flow-area').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.classList.add('active');
+  closeDetail();
+}
+</script>
