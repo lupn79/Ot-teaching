@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>姿勢控制評估 — 互動學習工具</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --teal: #1D9E75;
+    --teal-light: #E1F5EE;
+    --teal-mid: #5DCAA5;
+    --teal-dark: #085041;
+    --teal-deep: #0F6E56;
+    --purple-light: #EEEDFE;
+    --purple-mid: #AFA9EC;
+    --purple: #7F77DD;
+    --purple-dark: #3C3489;
+    --purple-deep: #534AB7;
+    --gray-bg: #F7F7F5;
+    --gray-border: #E2E1D9;
+    --gray-text: #6B6B67;
+    --text: #1A1A18;
+    --white: #FFFFFF;
+    --red-light: #FCEBEB;
+    --red-mid: #F09595;
+    --red-dark: #791F1F;
+    --red: #A32D2D;
+    --amber-light: #FAEEDA;
+    --amber-mid: #FAC775;
+    --amber-dark: #633806;
+    --amber: #854F0B;
+    --blue-light: #E6F1FB;
+    --blue-mid: #85B7EB;
+    --blue-dark: #0C447C;
+    --blue: #185FA5;
+    --green-light: #EAF3DE;
+    --green-mid: #97C459;
+    --green-dark: #27500A;
+    --green: #3B6D11;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    background: var(--gray-bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .site-header {
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-border);
+    padding: 18px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-inner {
+    max-width: 820px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .header-icon {
+    width: 38px;
+    height: 38px;
+    background: var(--teal-light);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .header-text h1 {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .header-text p {
+    font-size: 13px;
+    color: var(--gray-text);
+    margin-top: 1px;
+  }
+
+  /* Nav tabs */
+  .main-nav {
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-border);
+    padding: 0 24px;
+  }
+  .nav-inner {
+    max-width: 820px;
+    margin: 0 auto;
+    display: flex;
+    gap: 0;
+  }
+  .nav-btn {
+    padding: 14px 20px;
+    border: none;
+    background: none;
+    font-size: 14px;
+    color: var(--gray-text);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .nav-btn.active {
+    color: var(--teal);
+    border-bottom-color: var(--teal);
+  }
+  .nav-btn:hover:not(.active) { color: var(--text); }
+
+  /* Main content */
+  .main-content {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 28px 24px 60px;
+  }
+
+  /* Section panels */
+  .section-panel { display: none; }
+  .section-panel.active { display: block; }
+
+  /* Card */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--gray-border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    margin-bottom: 16px;
+  }
+
+  /* Section intro */
+  .section-intro {
+    font-size: 14px;
+    color: var(--gray-text);
+    margin-bottom: 22px;
+    line-height: 1.7;
+    padding: 14px 18px;
+    background: var(--teal-light);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--teal);
+  }
+
+  /* ── QUIZ ── */
+  .progress-bar-bg { height: 4px; background: var(--gray-border); border-radius: 2px; margin-bottom: 18px; }
+  .progress-bar-fill { height: 4px; background: var(--teal); border-radius: 2px; transition: width .4s ease; }
+  .q-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .q-num { font-size: 13px; color: var(--gray-text); }
+  .q-badge { font-size: 12px; padding: 3px 10px; border-radius: 20px; background: var(--blue-light); color: var(--blue-dark); font-weight: 500; }
+  .q-text { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+  .q-scenario {
+    background: var(--gray-bg);
+    border-left: 3px solid var(--teal);
+    padding: 12px 16px;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    font-size: 14px;
+    color: #444;
+    line-height: 1.7;
+    margin-bottom: 18px;
+  }
+  .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  @media (max-width: 480px) { .options-grid { grid-template-columns: 1fr; } }
+  .opt-btn {
+    background: var(--white);
+    border: 1px solid var(--gray-border);
+    border-radius: var(--radius-sm);
+    padding: 13px 15px;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .opt-btn:hover:not(:disabled) { background: var(--gray-bg); border-color: #B0B0A8; }
+  .opt-btn .ol { font-size: 15px; font-weight: 600; color: var(--text); }
+  .opt-btn .od { font-size: 13px; color: var(--gray-text); margin-top: 3px; }
+  .opt-btn.correct { border: 1.5px solid var(--teal); background: var(--teal-light); }
+  .opt-btn.correct .ol, .opt-btn.correct .od { color: var(--teal-dark); }
+  .opt-btn.wrong { border: 1.5px solid var(--red-mid); background: var(--red-light); }
+  .opt-btn.wrong .ol, .opt-btn.wrong .od { color: var(--red-dark); }
+  .opt-btn.reveal { border: 1.5px solid var(--teal); background: var(--teal-light); }
+  .opt-btn.reveal .ol, .opt-btn.reveal .od { color: var(--teal-dark); }
+  .opt-btn:disabled { cursor: default; }
+  .feedback {
+    border-radius: var(--radius-sm);
+    padding: 13px 16px;
+    margin-bottom: 14px;
+    font-size: 14px;
+    line-height: 1.65;
+    display: none;
+  }
+  .feedback.correct { background: var(--teal-light); color: var(--teal-dark); border: 1px solid var(--teal-mid); }
+  .feedback.wrong { background: var(--red-light); color: var(--red-dark); border: 1px solid var(--red-mid); }
+  .feedback .fb-title { font-weight: 600; margin-bottom: 4px; }
+  .quiz-next-btn {
+    width: 100%;
+    padding: 13px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--gray-border);
+    background: var(--white);
+    font-size: 15px;
+    color: var(--text);
+    cursor: pointer;
+    font-weight: 500;
+    display: none;
+    transition: background .15s;
+  }
+  .quiz-next-btn:hover { background: var(--gray-bg); }
+
+  /* Score screen */
+  .score-screen { display: none; text-align: center; padding: 2rem 0; }
+  .score-big { font-size: 56px; font-weight: 700; color: var(--teal); line-height: 1; margin-bottom: 8px; }
+  .score-label { font-size: 15px; color: var(--gray-text); margin-bottom: 1.5rem; }
+  .score-breakdown { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.5rem; max-width: 340px; margin-left: auto; margin-right: auto; margin-bottom: 1.5rem; }
+  .sc-card { background: var(--gray-bg); border-radius: var(--radius-sm); padding: 14px 10px; }
+  .sc-num { font-size: 24px; font-weight: 700; color: var(--text); }
+  .sc-lbl { font-size: 12px; color: var(--gray-text); margin-top: 2px; }
+  .restart-btn {
+    padding: 12px 28px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--gray-border);
+    background: var(--white);
+    font-size: 15px;
+    color: var(--text);
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .restart-btn:hover { background: var(--gray-bg); }
+
+  /* ── DECISION TREE ── */
+  .tree-tab-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .tree-tab {
+    padding: 7px 15px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--gray-border);
+    background: var(--white);
+    font-size: 13px;
+    color: var(--gray-text);
+    cursor: pointer;
+    transition: all .15s;
+    font-weight: 500;
+  }
+  .tree-tab.active {
+    background: var(--gray-bg);
+    color: var(--text);
+    border-color: #B0B0A8;
+  }
+  .tree-flow { display: none; }
+  .tree-flow.active { display: flex; flex-direction: column; align-items: center; gap: 0; }
+  .v-line { width: 2px; height: 20px; background: var(--gray-border); }
+  .h-split { width: 100%; display: flex; justify-content: center; position: relative; height: 24px; }
+  .h-split::before { content: ''; position: absolute; top: 0; left: calc(50% - 90px); width: 180px; height: 2px; background: var(--gray-border); }
+  .h-split .left-drop { position: absolute; left: calc(50% - 90px); top: 0; width: 2px; height: 24px; background: var(--gray-border); }
+  .h-split .right-drop { position: absolute; left: calc(50% + 88px); top: 0; width: 2px; height: 24px; background: var(--gray-border); }
+  .h-split-sm { width: 100%; display: flex; justify-content: center; position: relative; height: 20px; }
+  .h-split-sm::before { content: ''; position: absolute; top: 0; left: calc(50% - 60px); width: 120px; height: 2px; background: var(--gray-border); }
+  .h-split-sm .left-drop { position: absolute; left: calc(50% - 60px); top: 0; width: 2px; height: 20px; background: var(--gray-border); }
+  .h-split-sm .right-drop { position: absolute; left: calc(50% + 58px); top: 0; width: 2px; height: 20px; background: var(--gray-border); }
+  .branch-row { display: flex; gap: 14px; align-items: flex-start; justify-content: center; }
+
+  .t-node {
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--gray-border);
+    padding: 10px 14px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    min-width: 90px;
+    max-width: 150px;
+  }
+  .t-node:hover { border-color: #B0B0A8; background: var(--gray-bg); }
+  .t-node.start { background: var(--teal-light); border-color: var(--teal-mid); min-width: 180px; max-width: 260px; }
+  .t-node.start .nt { color: var(--teal-dark); font-weight: 600; font-size: 14px; }
+  .t-node.start .ns { color: var(--teal-deep); font-size: 12px; margin-top: 3px; }
+  .t-node.decide { background: var(--purple-light); border-color: var(--purple-mid); min-width: 130px; max-width: 190px; }
+  .t-node.decide .nt { color: var(--purple-dark); font-weight: 600; font-size: 13px; }
+  .t-node.decide .ns { color: var(--purple-deep); font-size: 11px; margin-top: 3px; }
+  .yn-row { display: flex; gap: 4px; margin-top: 5px; justify-content: center; }
+  .yn { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  .yn.y { background: var(--teal-light); color: var(--teal-deep); }
+  .yn.n { background: var(--red-light); color: var(--red); }
+  .t-node.su { background: var(--red-light); border-color: var(--red-mid); }
+  .t-node.su .nt { color: var(--red-dark); font-size: 20px; font-weight: 700; }
+  .t-node.su .ns { color: var(--red); font-size: 11px; margin-top: 2px; }
+  .t-node.sp { background: var(--amber-light); border-color: var(--amber-mid); }
+  .t-node.sp .nt { color: var(--amber-dark); font-size: 20px; font-weight: 700; }
+  .t-node.sp .ns { color: var(--amber); font-size: 11px; margin-top: 2px; }
+  .t-node.sf { background: var(--blue-light); border-color: var(--blue-mid); }
+  .t-node.sf .nt { color: var(--blue-dark); font-size: 20px; font-weight: 700; }
+  .t-node.sf .ns { color: var(--blue); font-size: 11px; margin-top: 2px; }
+  .t-node.sg { background: var(--green-light); border-color: var(--green-mid); }
+  .t-node.sg .nt { color: var(--green-dark); font-size: 20px; font-weight: 700; }
+  .t-node.sg .ns { color: var(--green); font-size: 11px; margin-top: 2px; }
+
+  .tree-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
+  .leg { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--gray-text); }
+  .leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  .detail-box {
+    margin-top: 18px;
+    background: var(--gray-bg);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    border: 1px solid var(--gray-border);
+    display: none;
+  }
+  .detail-box.show { display: block; }
+  .db-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+  .db-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .db-close { background: none; border: none; cursor: pointer; font-size: 18px; color: var(--gray-text); line-height: 1; padding: 0; }
+  .db-body { font-size: 14px; color: #444; line-height: 1.7; white-space: pre-line; }
+  .db-key { margin-top: 8px; font-size: 14px; font-weight: 600; color: var(--teal-deep); }
+
+  /* ── REFERENCE ── */
+  .ref-section h2 { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--gray-border); }
+  .ref-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .ref-card { border-radius: var(--radius-sm); padding: 14px 16px; border: 1px solid; }
+  .ref-card.u { background: var(--red-light); border-color: var(--red-mid); }
+  .ref-card.u .rc-label { color: var(--red-dark); font-size: 22px; font-weight: 700; }
+  .ref-card.u .rc-name { color: var(--red); font-size: 13px; font-weight: 600; margin: 2px 0 6px; }
+  .ref-card.u .rc-desc { color: var(--red-dark); font-size: 12px; line-height: 1.5; }
+  .ref-card.p { background: var(--amber-light); border-color: var(--amber-mid); }
+  .ref-card.p .rc-label { color: var(--amber-dark); font-size: 22px; font-weight: 700; }
+  .ref-card.p .rc-name { color: var(--amber); font-size: 13px; font-weight: 600; margin: 2px 0 6px; }
+  .ref-card.p .rc-desc { color: var(--amber-dark); font-size: 12px; line-height: 1.5; }
+  .ref-card.f { background: var(--blue-light); border-color: var(--blue-mid); }
+  .ref-card.f .rc-label { color: var(--blue-dark); font-size: 22px; font-weight: 700; }
+  .ref-card.f .rc-name { color: var(--blue); font-size: 13px; font-weight: 600; margin: 2px 0 6px; }
+  .ref-card.f .rc-desc { color: var(--blue-dark); font-size: 12px; line-height: 1.5; }
+  .ref-card.g { background: var(--green-light); border-color: var(--green-mid); }
+  .ref-card.g .rc-label { color: var(--green-dark); font-size: 22px; font-weight: 700; }
+  .ref-card.g .rc-name { color: var(--green); font-size: 13px; font-weight: 600; margin: 2px 0 6px; }
+  .ref-card.g .rc-desc { color: var(--green-dark); font-size: 12px; line-height: 1.5; }
+  .ref-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px; }
+  .ref-table th { text-align: left; padding: 9px 12px; background: var(--gray-bg); color: var(--gray-text); font-weight: 600; border-bottom: 1px solid var(--gray-border); font-size: 12px; }
+  .ref-table td { padding: 9px 12px; border-bottom: 1px solid var(--gray-border); color: var(--text); vertical-align: top; line-height: 1.5; }
+  .ref-table tr:last-child td { border-bottom: none; }
+
+  /* Footer */
+  .site-footer { text-align: center; padding: 24px; font-size: 12px; color: var(--gray-text); border-top: 1px solid var(--gray-border); margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <div class="header-icon">🏥</div>
+    <div class="header-text">
+      <h1>姿勢控制評估 — 互動學習工具</h1>
+      <p>北醫復健醫學部職能治療 · 供 OT 學生與新進治療師使用</p>
+    </div>
+  </div>
+</header>
+
+<nav class="main-nav">
+  <div class="nav-inner">
+    <button class="nav-btn active" onclick="switchMain('quiz')">計分判斷練習</button>
+    <button class="nav-btn" onclick="switchMain('tree')">評估流程決策樹</button>
+    <button class="nav-btn" onclick="switchMain('ref')">計分標準速查</button>
+  </div>
+</nav>
+
+<main class="main-content">
+
+  <!-- ═══ QUIZ ═══ -->
+  <section class="section-panel active" id="panel-quiz">
+    <p class="section-intro">每題提供一個臨床情境，請根據 P/F/G/U 計分標準作答。答題後會立即顯示解說。題目順序每次隨機排列。</p>
+    <div class="card" id="quizCard">
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="qProgress" style="width:0%"></div></div>
+      <div class="q-meta">
+        <span class="q-num" id="qNum">題目 1 / 10</span>
+        <span class="q-badge" id="qBadge">靜態坐姿平衡</span>
+      </div>
+      <div class="q-text" id="qText"></div>
+      <div class="q-scenario" id="qScenario"></div>
+      <div class="options-grid" id="qOptions"></div>
+      <div class="feedback" id="qFeedback"><div class="fb-title" id="qFbTitle"></div><div id="qFbBody"></div></div>
+      <button class="quiz-next-btn" id="qNextBtn">下一題</button>
+    </div>
+    <div class="score-screen" id="scoreScreen">
+      <div class="score-big" id="scoreBig"></div>
+      <div class="score-label" id="scoreLabel"></div>
+      <div class="score-breakdown">
+        <div class="sc-card"><div class="sc-num" id="scCorrect"></div><div class="sc-lbl">答對</div></div>
+        <div class="sc-card"><div class="sc-num" id="scWrong"></div><div class="sc-lbl">答錯</div></div>
+        <div class="sc-card"><div class="sc-num" id="scTotal"></div><div class="sc-lbl">總題數</div></div>
+      </div>
+      <button class="restart-btn" onclick="restartQuiz()">重新練習</button>
+    </div>
+  </section>
+
+  <!-- ═══ DECISION TREE ═══ -->
+  <section class="section-panel" id="panel-tree">
+    <p class="section-intro">點選各節點可查看詳細說明。從「設置要點」開始，依序回答判斷問題，到達最終計分結果。</p>
+    <div class="card">
+      <div class="tree-legend">
+        <div class="leg"><div class="leg-dot" style="background:var(--teal)"></div>設置條件</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--purple)"></div>判斷問題</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--red)"></div>U 分數</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--amber)"></div>P 分數</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--blue)"></div>F 分數</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--green)"></div>G 分數</div>
+      </div>
+      <div class="tree-tab-row">
+        <button class="tree-tab active" onclick="switchTree('ss')">坐姿靜態</button>
+        <button class="tree-tab" onclick="switchTree('sd')">坐姿動態</button>
+        <button class="tree-tab" onclick="switchTree('ts')">站姿靜態</button>
+        <button class="tree-tab" onclick="switchTree('td')">站姿動態</button>
+        <button class="tree-tab" onclick="switchTree('ht')">頭幹控制</button>
+      </div>
+
+      <!-- 坐姿靜態 -->
+      <div class="tree-flow active" id="tree-ss">
+        <div class="t-node start" onclick="td('ss-setup')"><div class="nt">靜態坐姿平衡設置</div><div class="ns">坐於 mat，雙手放腿上，雙腳平放</div></div>
+        <div class="v-line"></div>
+        <div class="t-node decide" onclick="td('q-can-sit')"><div class="nt">病人能坐起來嗎？</div><div class="ns">含任何支撐</div><div class="yn-row"><span class="yn y">可以</span><span class="yn n">不能</span></div></div>
+        <div class="h-split"><div class="left-drop"></div><div class="right-drop"></div></div>
+        <div class="branch-row" style="width:100%;justify-content:center;gap:60px">
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div class="t-node decide" onclick="td('q-all-dir')"><div class="nt">各方向推後均能回原位？</div><div class="yn-row"><span class="yn y">是</span><span class="yn n">否</span></div></div>
+            <div class="h-split-sm"><div class="left-drop"></div><div class="right-drop"></div></div>
+            <div class="branch-row">
+              <div style="display:flex;flex-direction:column;align-items:center">
+                <div class="t-node decide" onclick="td('q-fp')"><div class="nt">某方向無法回原位（仍能坐）？</div><div class="yn-row"><span class="yn y">是</span><span class="yn n">否</span></div></div>
+                <div class="h-split-sm"><div class="left-drop"></div><div class="right-drop"></div></div>
+                <div class="branch-row">
+                  <div class="t-node sf" onclick="td('score-f')"><div class="nt">F</div><div class="ns">某方向無法回原位</div></div>
+                  <div class="t-node sp" onclick="td('score-p-sit')"><div class="nt">P</div><div class="ns">需外在支持坐著</div></div>
+                </div>
+              </div>
+              <div class="t-node sg" onclick="td('score-g-sit')"><div class="nt">G</div><div class="ns">任何方向均回原位</div></div>
+            </div>
+          </div>
+          <div class="t-node su" onclick="td('score-u')"><div class="nt">U</div><div class="ns">完全無法坐起</div></div>
+        </div>
+        <div class="detail-box" id="detail-ss"><div class="db-header"><div class="db-title" id="dtitle-ss"></div><button class="db-close" onclick="closeDetail('ss')">×</button></div><div class="db-body" id="dbody-ss"></div><div class="db-key" id="dkey-ss"></div></div>
+      </div>
+
+      <!-- 坐姿動態 -->
+      <div class="tree-flow" id="tree-sd">
+        <div class="t-node start" onclick="td2('sd-setup','sd')"><div class="nt">動態坐姿平衡設置</div><div class="ns">Reaching 至 BOS/LOS 外，屁股不離 mat</div></div>
+        <div class="v-line"></div>
+        <div class="t-node decide" onclick="td2('q-can-sit','sd')"><div class="nt">病人能坐起嗎？</div><div class="yn-row"><span class="yn y">可以</span><span class="yn n">不能</span></div></div>
+        <div class="h-split"><div class="left-drop"></div><div class="right-drop"></div></div>
+        <div class="branch-row" style="width:100%;justify-content:center;gap:50px">
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div class="t-node decide" onclick="td2('q-instant-fall','sd')"><div class="nt">手一伸出就失衡？</div><div class="yn-row"><span class="yn y">是</span><span class="yn n">否</span></div></div>
+            <div class="h-split-sm"><div class="left-drop"></div><div class="right-drop"></div></div>
+            <div class="branch-row">
+              <div class="t-node sp" onclick="td2('score-p-dyn','sd')"><div class="nt">P</div><div class="ns">手一出就失衡</div></div>
+              <div style="display:flex;flex-direction:column;align-items:center">
+                <div class="t-node decide" onclick="td2('q-all-9','sd')"><div class="nt">全部 9 次均成功？</div><div class="ns">3 方向 × 3 高度</div><div class="yn-row"><span class="yn y">是</span><span class="yn n">否</span></div></div>
+                <div class="h-split-sm"><div class="left-drop"></div><div class="right-drop"></div></div>
+                <div class="branch-row">
+                  <div class="t-node sg" onclick="td2('score-g-dyn','sd')"><div class="nt">G</div><div class="ns">全部成功</div></div>
+                  <div class="t-node sf" onclick="td2('score-f-dyn','sd')"><div class="nt">F</div><div class="ns">有任一失敗</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="t-node su" onclick="td2('score-u','sd')"><div class="nt">U</div><div class="ns">完全無法坐起</div></div>
+        </div>
+        <div class="detail-box" id="detail-sd"><div class="db-header"><div class="db-title" id="dtitle-sd"></div><button class="db-close" onclick="closeDetail('sd')">×</button></div><div class="db-body" id="dbody-sd"></div><div class="db-key" id="dkey-sd"></div></div>
+      </div>
+
+      <!-- 站姿靜態 -->
+      <div class="tree-flow" id="tree-ts">
+        <div class="t-node start" onclick="td2('ts-setup','ts')"><div class="nt">靜態站姿平衡設置</div><div class="ns">站立，雙手置側，雙腳與 hip 同寬</div></div>
+        <div class="v-line"></div>
+        <div class="t-node decide" onclick="td2('q-can-stand','ts')"><div class="nt">病人能站起來嗎？</div><div class="yn-row"><span class="yn y">可以</span><span class="yn n">不能</span></div></div>
+        <div class="h-split"><div class="left-drop"></div><div class="right-drop"></div></div>
+        <div class="branch-row" style="width:100%;justify-content:center;gap:60px">
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div class="t-node decide" onclick="td2('q-all-dir','ts')"><div class="nt">各方向推後均能回原位？</div><div class="yn-row"><span class="yn y">是</span><span class="yn n">否</span></div></div>
+            <div class="h-split-sm"><div class="left-drop"></div><div class="right-drop"></div></div>
+            <div class="branch-row">
+              <div style="display:flex;flex-direction:column;align-items:center">
+                <div class="t-node decide" onclick="td2('q-fp','ts')"><div class="nt">某方向無法回原位（仍能站）？</div><div class="yn-row"><span class="yn y">是</span><span class="yn n">否</span></div></div>
+                <div class="h-split-sm"><div class="left-drop"></div><div class="right-drop"></div></div>
+                <div class="branch-row">
+                  <div class="t-node sf" onclick="td2('score-f','ts')"><div class="nt">F</div><div class="ns">某方向無法回原位</div></div>
+                  <div class="t-node sp" onclick="td2('score-p-stand','ts')"><div class="nt">P</div><div class="ns">需外在支持站著</div></div>
+                </div>
+              </div>
+              <div class="t-node sg" onclick="td2('score-g-stand','ts')"><div class="nt">G</div><div class="ns">任何方向均回原位</div></div>
+            </div>
+          </div>
+          <div class="t-node su" onclick="td2('score-u-stand','ts')"><div class="nt">U</div><div class="ns">完全無法站起</div></div>
+        </div>
+        <div class="detail-box" id="detail-ts"><div class="db-header"><div class="db-title" id="dtitle-ts"></div><button class="db-close" onclick="closeDetail('ts')">×</button></div><div class="db-body" id="dbody-ts"></div><div class="db-key" id="dkey-ts"></div></div>
+      </div>
+
+      <!-- 站姿動態 -->
+      <div class="tree-flow" id="tree-td">
+        <div class="t-node start" onclick="td2('td-setup','td')"><div class="nt">動態站姿平衡設置</div><div class="ns">Reaching 至 BOS/LOS 外，腳不跨步</div></div>
+        <div class="v-line"></div>
+        <div class="t-node decide" onclick="td2('q-can-stand','td')"><div class="nt">病人能站起嗎？</div><div class="yn-row"><span class="yn y">可以</span><span class="yn n">不能</span></div></div>
+        <div class="h-split"><div class="left-drop"></div><div class="right-drop"></div></div>
+        <div class="branch-row" style="width:100%;justify-content:center;gap:50px">
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div class="t-node decide" onclick="td2('q-instant-fall','td')"><div class="nt">手一伸出就失衡？</div><div class="yn-row"><span class="yn y">是</span><span class="yn n">否</span></div></div>
+            <div class="h-split-sm"><div class="left-drop"></div><div class="right-drop"></div></div>
+            <div class="branch-row">
+              <div class="t-node sp" onclick="td2('score-p-dyn','td')"><div class="nt">P</div><div class="ns">手一出就失衡</div></div>
+              <div style="display:flex;flex-direction:column;align-items:center">
+                <div class="t-node decide" onclick="td2('q-all-9-noStep','td')"><div class="nt">全部成功且腳未跨步？</div><div class="yn-row"><span class="yn y">是</span><span class="yn n">否</span></div></div>
+                <div class="h-split-sm"><div class="left-drop"></div><div class="right-drop"></div></div>
+                <div class="branch-row">
+                  <div class="t-node sg" onclick="td2('score-g-td','td')"><div class="nt">G</div><div class="ns">全成功，腳未跨步</div></div>
+                  <div class="t-node sf" onclick="td2('score-f-td','td')"><div class="nt">F</div><div class="ns">有任一失敗或跨步</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="t-node su" onclick="td2('score-u-stand','td')"><div class="nt">U</div><div class="ns">完全無法站起</div></div>
+        </div>
+        <div class="detail-box" id="detail-td"><div class="db-header"><div class="db-title" id="dtitle-td"></div><button class="db-close" onclick="closeDetail('td')">×</button></div><div class="db-body" id="dbody-td"></div><div class="db-key" id="dkey-td"></div></div>
+      </div>
+
+      <!-- 頭幹控制 -->
+      <div class="tree-flow" id="tree-ht">
+        <div class="t-node start" onclick="td2('ht-setup','ht')"><div class="nt">頭部 / 軀幹控制評估</div><div class="ns">flexion、extension、lateral flexion、rotation</div></div>
+        <div class="v-line"></div>
+        <div class="t-node decide" onclick="td2('q-any-control','ht')"><div class="nt">有任何有意識的控制嗎？</div><div class="yn-row"><span class="yn y">有</span><span class="yn n">完全沒有</span></div></div>
+        <div class="h-split"><div class="left-drop"></div><div class="right-drop"></div></div>
+        <div class="branch-row" style="width:100%;justify-content:center;gap:60px">
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div class="t-node decide" onclick="td2('q-need-support','ht')"><div class="nt">需外在支持才能完成？</div><div class="yn-row"><span class="yn y">是</span><span class="yn n">否</span></div></div>
+            <div class="h-split-sm"><div class="left-drop"></div><div class="right-drop"></div></div>
+            <div class="branch-row">
+              <div class="t-node sp" onclick="td2('score-p-ht','ht')"><div class="nt">P</div><div class="ns">嘗試但需支持</div></div>
+              <div style="display:flex;flex-direction:column;align-items:center">
+                <div class="t-node decide" onclick="td2('q-any-dir-fail','ht')"><div class="nt">任一方向無法自主控制？</div><div class="yn-row"><span class="yn y">是</span><span class="yn n">否</span></div></div>
+                <div class="h-split-sm"><div class="left-drop"></div><div class="right-drop"></div></div>
+                <div class="branch-row">
+                  <div class="t-node sf" onclick="td2('score-f-ht','ht')"><div class="nt">F</div><div class="ns">任一方向無法自主</div></div>
+                  <div class="t-node sg" onclick="td2('score-g-ht','ht')"><div class="nt">G</div><div class="ns">各方向均可自主</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="t-node su" onclick="td2('score-u-ht','ht')"><div class="nt">U</div><div class="ns">完全無意識控制</div></div>
+        </div>
+        <div class="detail-box" id="detail-ht"><div class="db-header"><div class="db-title" id="dtitle-ht"></div><button class="db-close" onclick="closeDetail('ht')">×</button></div><div class="db-body" id="dbody-ht"></div><div class="db-key" id="dkey-ht"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ REFERENCE ═══ -->
+  <section class="section-panel" id="panel-ref">
+    <div class="card ref-section">
+      <h2>計分標準 — U / P / F / G</h2>
+      <div class="ref-grid">
+        <div class="ref-card u"><div class="rc-label">U</div><div class="rc-name">Unable</div><div class="rc-desc">完全無法完成動作。給予任何支撐都無法維持姿勢。</div></div>
+        <div class="ref-card p"><div class="rc-label">P</div><div class="rc-name">Poor</div><div class="rc-desc">有嘗試，但無法完成，必須有外在支持才能維持姿勢。</div></div>
+        <div class="ref-card f"><div class="rc-label">F</div><div class="rc-name">Fair</div><div class="rc-desc">可維持姿勢，但受到干擾後，有任一方向無法回到原位。</div></div>
+        <div class="ref-card g"><div class="rc-label">G</div><div class="rc-name">Good</div><div class="rc-desc">受到干擾後，任何方向均可將重心調整回原位。</div></div>
+      </div>
+    </div>
+    <div class="card ref-section">
+      <h2>各評估項目操作重點</h2>
+      <table class="ref-table">
+        <thead><tr><th>評估項目</th><th>姿勢設置</th><th>測試方式</th><th>F vs P 關鍵差異</th></tr></thead>
+        <tbody>
+          <tr><td><strong>坐姿靜態</strong></td><td>坐於 mat，雙手放腿，雙腳平放，膝與 hip 同寬</td><td>隨機推前後左右，範圍在 BOS/LOS 內</td><td>F：被推後某方向無法回原位但仍能坐。P：需外在支持才能坐著。</td></tr>
+          <tr><td><strong>坐姿動態</strong></td><td>同上</td><td>Reaching 至 BOS/LOS 外 3 方向 × 3 高度，屁股不離 mat</td><td>F：有任一方向/高度失敗。P：手一伸出就立刻失衡。</td></tr>
+          <tr><td><strong>站姿靜態</strong></td><td>站立，雙手置側，雙腳與 hip 同寬</td><td>隨機推前後左右，範圍在 BOS/LOS 內</td><td>同坐姿靜態邏輯，對象改為站姿。</td></tr>
+          <tr><td><strong>站姿動態</strong></td><td>同上</td><td>Reaching 至 BOS/LOS 外 3 方向 × 3 高度，雙腳不跨步</td><td>F：有任一失敗，或 reaching 時跨步。G：9 次全成功且腳未跨步。</td></tr>
+          <tr><td><strong>頭部控制</strong></td><td>—</td><td>評估 flexion/extension/lateral flexion/rotation</td><td>F：任一方向無法自主控制。P：有嘗試但需外在支持。U：無任何有意識控制。</td></tr>
+          <tr><td><strong>軀幹控制</strong></td><td>—</td><td>同頭部，評估 4 個方向</td><td>同頭部控制標準。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card ref-section">
+      <h2>治療師站位提醒</h2>
+      <table class="ref-table">
+        <thead><tr><th>評估項目</th><th>治療師站位</th></tr></thead>
+        <tbody>
+          <tr><td>坐姿靜態 / 動態</td><td>站於病人前方或患側，雙手隨時預防跌倒</td></tr>
+          <tr><td>站姿靜態</td><td>站於病人前方或患側，雙手隨時預防跌倒</td></tr>
+          <tr><td>站姿動態</td><td>站於患側，一手拉住病人褲頭，隨時預防跌倒</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  北醫復健醫學部職能治療 · 本工具僅供學習使用
+</footer>
+
+<script>
+// ─── QUIZ DATA ───
+const questions = [
+  { cat:'靜態坐姿平衡', text:'靜態坐姿平衡計分', scenario:'病人坐在 mat 上，治療師隨機向左側推病人。病人身體向左偏後，嘗試回正，但身體無法完全回到原位，維持在偏左的位置。', opts:[{l:'U',d:'完全無法完成'},{l:'P',d:'需外在支持才能坐'},{l:'F',d:'某方向無法回原位'},{l:'G',d:'任何方向都能回原位'}], ans:2, fc:'答對！推病人時某一方向身體無法回到原位，就給 F（fair）。病人雖有嘗試，但無法完全回正，符合 F 的標準。', fw:'答案是 F（fair）。推病人時某方向無法回原位就給 F。G 需任何方向都能回原位；P 是需要外在支持才能坐著；U 是完全無法坐起。' },
+  { cat:'靜態坐姿平衡', text:'靜態坐姿平衡計分', scenario:'治療師隨機向各方向推病人。每次被推後，病人都能穩定地將身體重心調整回原位，任何方向皆如此。', opts:[{l:'U',d:'完全無法完成'},{l:'P',d:'需外在支持才能坐'},{l:'F',d:'某方向無法回原位'},{l:'G',d:'任何方向都能回原位'}], ans:3, fc:'答對！任何方向被推後都能回到原位，給 G（good）。這是靜態坐姿平衡最高的評分。', fw:'答案是 G（good）。任何方向都能回原位，代表病人有完整的靜態坐姿平衡控制能力。' },
+  { cat:'靜態坐姿平衡', text:'靜態坐姿平衡計分', scenario:'治療師嘗試讓病人保持坐姿，但不論給予任何支撐，病人仍無法維持坐姿，身體持續往一側倒下。', opts:[{l:'U',d:'完全無法完成'},{l:'P',d:'嘗試保持但需支持'},{l:'F',d:'某方向無法回原位'},{l:'G',d:'任何方向都能回原位'}], ans:0, fc:'答對！無法坐起的病人，給予任何支撐都無法維持坐姿，評為 U（unable）。', fw:'答案是 U（unable）。U 的標準是完全無法完成，給予任何支撐都無法維持坐姿。P 是有嘗試或需外在支持仍能坐，兩者不同。' },
+  { cat:'動態坐姿平衡', text:'動態坐姿平衡計分', scenario:'病人做 reaching 測試。正前方胸口高度成功回原位，但向患側 45° 方向 reaching 時，身體無法回到原位。', opts:[{l:'U',d:'完全無法完成'},{l:'P',d:'手一伸出去就失去平衡'},{l:'F',d:'某方向或高度無法回原位'},{l:'G',d:'所有方向與高度皆可回原位'}], ans:2, fc:'答對！各方位的 reaching 中，有任一方向、任一高度無法回原位就給 F。即使只有一個方向失敗也算 F。', fw:'答案是 F（fair）。只要有任一方向或高度的 reaching 無法回原位，就給 F。G 需要全部 9 次都成功。' },
+  { cat:'動態坐姿平衡', text:'動態坐姿平衡計分', scenario:'病人坐在 mat 上，治療師請病人伸手 reaching。病人一伸出手，身體立刻往前傾斜失去平衡，治療師需要立即扶住病人。', opts:[{l:'U',d:'完全無法完成'},{l:'P',d:'手一伸出去就失去平衡'},{l:'F',d:'某方向或高度無法回原位'},{l:'G',d:'所有方向與高度皆可回原位'}], ans:1, fc:'答對！P（poor）的標準：嘗試保持坐姿穩定，但手一伸出去就失去平衡。', fw:'答案是 P（poor）。P 和 F 的差異：P 是手一出就立刻失衡；F 是可以伸手但某方向無法回原位。' },
+  { cat:'靜態站姿平衡', text:'靜態站姿平衡計分', scenario:'治療師向各方向推病人。每次被推後，病人都能立刻將重心調整回來，任何方向均成功。', opts:[{l:'U',d:'完全無法完成'},{l:'P',d:'需外在支持才能站'},{l:'F',d:'某方向無法回原位'},{l:'G',d:'任何方向都能回原位'}], ans:3, fc:'答對！任何方向被推後都能回到原位，給 G（good）。', fw:'答案是 G（good）。任何方向都能回原位，代表有完整的靜態站姿平衡。' },
+  { cat:'靜態站姿平衡', text:'靜態站姿平衡計分', scenario:'病人嘗試站立，即使有治療師扶持，病人仍無法維持站姿超過數秒，膝蓋持續彎曲下沉。', opts:[{l:'U',d:'完全無法完成'},{l:'P',d:'嘗試保持但需外在支持'},{l:'F',d:'某方向無法回原位'},{l:'G',d:'任何方向都能回原位'}], ans:1, fc:'答對！P（poor）是：嘗試要保持站姿，但無法完成，一定要有支持才能站著。', fw:'答案是 P（poor）。P 是有嘗試但需要外在支持才能勉強站著；U 是完全無法站起。' },
+  { cat:'動態站姿平衡', text:'動態站姿平衡計分', scenario:'病人站立進行 reaching 測試。正前方和好側所有高度都成功，但患側 45° 地面高度時，病人跨了一步才能保持平衡。', opts:[{l:'U',d:'完全無法完成'},{l:'P',d:'手一伸出去就失去平衡'},{l:'F',d:'某方向或高度無法回原位'},{l:'G',d:'所有方向與高度皆可回原位'}], ans:2, fc:'答對！動態站姿平衡要求雙腳不跨步。只要有一個方向/高度失敗，或 reaching 時跨步，就給 F。', fw:'答案是 F（fair）。動態站姿要求 reaching 時雙腳不跨步。只要有任一失敗就是 F，不是 G。' },
+  { cat:'頭部控制', text:'頭部控制評分', scenario:'評估頭部控制時，病人嘗試將頭部轉向左側，只能稍微偏轉，無法完成完整動作，需治療師以手稍微支持。', opts:[{l:'U',d:'無法有意識控制頭部'},{l:'P',d:'嘗試但需外在支持'},{l:'F',d:'任一方向無法自主控制'},{l:'G',d:'可自主轉動並保持任何位置'}], ans:1, fc:'答對！P（poor）是：嘗試要保持頭部位置，但無法完成，需有外在支持。病人有嘗試但需要外力輔助，符合 P 的標準。', fw:'答案是 P（poor）。P 的關鍵是「有嘗試但需外在支持」；F 是不需支持但某方向無法自主控制；U 是完全無法有意識控制。' },
+  { cat:'動態站姿平衡', text:'動態站姿平衡計分', scenario:'病人站立進行所有方向和高度的 reaching 測試，共 9 次。每一次 reaching 後，病人都能穩定回到原位，雙腳始終沒有跨步。', opts:[{l:'U',d:'完全無法完成'},{l:'P',d:'手一伸出去就失去平衡'},{l:'F',d:'某方向或高度無法回原位'},{l:'G',d:'所有方向與高度皆可回原位'}], ans:3, fc:'答對！9 次 reaching 全部成功，且雙腳未跨步，給 G（good）。', fw:'答案是 G（good）。G 的標準：所有 reaching 都能回原位，且雙腳不跨步。' }
+];
+
+let shuffled = [], qIdx = 0, score = 0, answered = false;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length-1; i>0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+function renderQuestion() {
+  if (qIdx >= shuffled.length) { showScore(); return; }
+  const q = shuffled[qIdx];
+  answered = false;
+  document.getElementById('qProgress').style.width = (qIdx/shuffled.length*100)+'%';
+  document.getElementById('qNum').textContent = '題目 '+(qIdx+1)+' / '+shuffled.length;
+  document.getElementById('qBadge').textContent = q.cat;
+  document.getElementById('qText').textContent = q.text;
+  document.getElementById('qScenario').textContent = q.scenario;
+  const grid = document.getElementById('qOptions');
+  grid.innerHTML = '';
+  q.opts.forEach((o,i) => {
+    const b = document.createElement('button');
+    b.className = 'opt-btn';
+    b.innerHTML = '<div class="ol">'+o.l+'</div><div class="od">'+o.d+'</div>';
+    b.onclick = () => selectAnswer(i, q);
+    grid.appendChild(b);
+  });
+  const fb = document.getElementById('qFeedback');
+  fb.style.display = 'none'; fb.className = 'feedback';
+  document.getElementById('qNextBtn').style.display = 'none';
+}
+
+function selectAnswer(chosen, q) {
+  if (answered) return;
+  answered = true;
+  const btns = document.querySelectorAll('.opt-btn');
+  btns.forEach(b => b.disabled = true);
+  const ok = chosen === q.ans;
+  if (ok) { score++; btns[chosen].className = 'opt-btn correct'; }
+  else { btns[chosen].className = 'opt-btn wrong'; btns[q.ans].className = 'opt-btn reveal'; }
+  const fb = document.getElementById('qFeedback');
+  fb.style.display = 'block';
+  fb.className = 'feedback '+(ok?'correct':'wrong');
+  document.getElementById('qFbTitle').textContent = ok ? '答對了！' : '答錯了';
+  document.getElementById('qFbBody').textContent = ok ? q.fc : q.fw;
+  const nb = document.getElementById('qNextBtn');
+  nb.style.display = 'block';
+  nb.textContent = qIdx < shuffled.length-1 ? '下一題' : '查看成績';
+}
+
+document.getElementById('qNextBtn').onclick = () => { qIdx++; renderQuestion(); };
+
+function showScore() {
+  document.getElementById('quizCard').style.display = 'none';
+  const ss = document.getElementById('scoreScreen');
+  ss.style.display = 'block';
+  const pct = Math.round(score/shuffled.length*100);
+  document.getElementById('scoreBig').textContent = pct+'%';
+  document.getElementById('scoreLabel').textContent = pct===100?'全部答對，臨床判斷力優秀！':pct>=80?'表現很好，再複習幾個情境吧。':pct>=60?'有進步空間，建議重複練習。':'建議重新複習計分標準後再練習。';
+  document.getElementById('scCorrect').textContent = score;
+  document.getElementById('scWrong').textContent = shuffled.length-score;
+  document.getElementById('scTotal').textContent = shuffled.length;
+}
+
+function restartQuiz() {
+  qIdx = 0; score = 0;
+  shuffled = shuffle(questions);
+  document.getElementById('quizCard').style.display = 'block';
+  document.getElementById('scoreScreen').style.display = 'none';
+  renderQuestion();
+}
+
+// ─── TREE DATA ───
+const treeDetails = {
+  'ss-setup': {t:'靜態坐姿平衡 — 設置要點', b:'病人坐在 mat 上，雙手放於腿上，雙腳平放在地。雙膝勿併攏，打開與 hip 同寬。\n\n指導語：「我會推你，請你盡量坐穩，不要被我推倒。」\n\n治療師站在病人前方，雙手保持在可隨時預防病人跌倒的位置。', k:''},
+  'sd-setup': {t:'動態坐姿平衡 — 設置要點', b:'病人坐在 mat 上，雙手放於腿上，雙腳平放在地。\n\n指導語：「請你手伸出來碰我的手（或取物），然後再回到原位，請你盡量坐穩，不要跌倒。」\n\nReaching 範圍在 BOS/LOS 外，但屁股不離 mat。測 3 個方向（前方、好側 45°、患側 45°）× 3 個高度（胸口、膝蓋、地面）共 9 次。', k:''},
+  'ts-setup': {t:'靜態站姿平衡 — 設置要點', b:'病人站在地上，雙手放於身側，雙膝勿併攏，雙腳打開與 hip 同寬。\n\n指導語：「我會推你，請你盡量站穩，不要被我推倒。」\n\n治療師站在病人前方或患側，雙手保持在可隨時預防病人跌倒的位置。', k:''},
+  'td-setup': {t:'動態站姿平衡 — 設置要點', b:'病人站在地上，雙手放於身側，雙膝勿併攏，雙腳打開與 hip 同寬。\n\n指導語：「請你手伸出來碰我的手（或取物），然後再回到原位，請你盡量站穩，不要跌倒。」\n\nReaching 範圍在 BOS/LOS 外。重點：雙腳不跨步，膝蓋可彎。治療師站在患側一手拉住褲頭。', k:'重要：雙腳不跨步是 G 的必要條件！'},
+  'ht-setup': {t:'頭部 / 軀幹控制 — 評估方向', b:'分別評估以下四個方向：\n• Flexion（前彎）\n• Extension（後仰）\n• Lateral flexion（側彎）\n• Rotation（旋轉）\n\n頭部與軀幹控制分開記錄，各自使用相同的 U/P/F/G 標準。', k:''},
+  'q-can-sit': {t:'關鍵判斷：病人能坐起來嗎？', b:'先確認病人是否能坐起。\n\n無法坐起者（給予任何支撐都無法維持坐姿）→ 直接給 U，不需繼續測試。', k:''},
+  'q-can-stand': {t:'關鍵判斷：病人能站起來嗎？', b:'先確認病人是否能站起。\n\n無法站起者（給予任何支撐都無法維持站姿）→ 直接給 U，不需繼續測試。', k:''},
+  'q-all-dir': {t:'關鍵判斷：各方向均能回原位？', b:'隨機推動後，觀察病人能否將身體重心調整回原位。\n\n任何方向均成功 → G\n有任一方向失敗 → 再判斷是 F 或 P', k:''},
+  'q-fp': {t:'F vs P 的關鍵差異', b:'F（fair）：病人可以維持姿勢，但被推後某方向身體無法回到原位。\n\nP（poor）：病人嘗試保持姿勢，但需要外在支持才能勉強維持，即使沒被推也可能撐不住。\n\n→ 關鍵：P 是「需支持才能維持」，F 是「能維持但被推後某方向回不來」。', k:''},
+  'q-instant-fall': {t:'P 的判斷標準', b:'P（poor）：手一伸出去就立刻失去平衡，無法完成 reaching 動作。\n\n這與 F 不同：F 是可以伸手但某方向無法回原位，P 是連伸手的動作都做不到。', k:''},
+  'q-all-9': {t:'G vs F 的判斷（坐姿動態）', b:'G：3 方向 × 3 高度共 9 次 reaching，每次都能回到原位，屁股始終未離 mat。\n\nF：有任一方向或任一高度無法回原位。\n\n→ 只要有一個組合失敗就是 F，必須全部 9 次成功才是 G。', k:''},
+  'q-all-9-noStep': {t:'G vs F 的判斷（站姿動態）', b:'G：9 次 reaching 全部成功，且雙腳始終未跨步（膝蓋可彎）。\n\nF：有任一方向或高度失敗，或 reaching 時雙腳有跨步。\n\n→ 跨步等同失去穩定支撐，即使其他方向成功也只能給 F。', k:'跨步 = F，這是站姿動態特有的判斷依據！'},
+  'q-any-control': {t:'關鍵判斷：有任何有意識的控制嗎？', b:'完全無法有意識控制頭部或軀幹（任何方向均無反應）→ U。\n\n只要有任何嘗試移動的動作，即使做不好，就進入下一個判斷。', k:''},
+  'q-need-support': {t:'P 的判斷標準（頭幹控制）', b:'P（poor）：有嘗試控制，但無法完成，需要外在支持才能維持位置。\n\n例如：嘗試轉頭但只偏了一點點，需治療師手扶才能撐住。', k:''},
+  'q-any-dir-fail': {t:'F vs G 的判斷（頭幹控制）', b:'F：flexion、extension、lateral flexion、rotation 四個方向中，有任一方向無法自主控制。\n\nG：可自主轉動頭部/軀幹，並保持在任何位置，四個方向均通過。', k:''},
+  'score-u': {t:'U — Unable', b:'完全無法完成動作。無法坐起的病人，給予任何支撐都無法維持坐姿。', k:''},
+  'score-u-stand': {t:'U — Unable', b:'完全無法完成動作。無法站起的病人，給予任何支撐都無法維持站姿。', k:''},
+  'score-u-ht': {t:'U — Unable（頭幹控制）', b:'無法有意識地控制頭部或軀幹，完全無任何自主動作。', k:''},
+  'score-p-sit': {t:'P — Poor（靜態坐姿）', b:'嘗試保持坐姿，但無法完成，一定要有外在支持才能坐著。', k:''},
+  'score-p-dyn': {t:'P — Poor（動態平衡）', b:'嘗試保持姿勢穩定，但無法完成。手一伸出去就失去平衡。', k:''},
+  'score-p-stand': {t:'P — Poor（靜態站姿）', b:'嘗試保持站姿，但無法完成，一定要有外在支持才能站著。', k:''},
+  'score-p-ht': {t:'P — Poor（頭幹控制）', b:'有嘗試要保持位置，但無法完成，需有外在支持才能維持。', k:''},
+  'score-f': {t:'F — Fair（靜態平衡）', b:'可在 BOS/LOS 範圍內維持姿勢，但給予隨機的平衡干擾後，有任一方向無法回到原位。', k:'推病人時，某一方向身體無法回原位 → F。'},
+  'score-f-dyn': {t:'F — Fair（動態坐姿）', b:'各方位的 reaching 中，有任一方向、任一高度無法回到原位，或失去平衡。', k:'只要有一個組合失敗就給 F。'},
+  'score-f-td': {t:'F — Fair（動態站姿）', b:'各方位的 reaching 中，有任一方向/高度無法回原位，或 reaching 時雙腳有跨步。', k:'跨步 = F，即使其他方向成功也一樣。'},
+  'score-f-ht': {t:'F — Fair（頭幹控制）', b:'任一方向（flexion/extension/lateral flexion/rotation）無法自主控制。', k:'4 個方向中有任一個失敗就給 F。'},
+  'score-g-sit': {t:'G — Good（靜態坐姿）', b:'給予隨機的平衡干擾，可成功控制姿勢，將身體重心調整回原位。推病人時，任何方向身體都可回到原位。', k:''},
+  'score-g-stand': {t:'G — Good（靜態站姿）', b:'給予隨機的平衡干擾，可成功控制姿勢，將身體重心調整回原位。任何方向均成功。', k:''},
+  'score-g-dyn': {t:'G — Good（動態坐姿）', b:'各方位的 reaching（3 方向 × 3 高度共 9 次），都可成功控制姿勢，回到原位，屁股不離 mat。', k:'9 次全部成功才是 G。'},
+  'score-g-td': {t:'G — Good（動態站姿）', b:'各方位的 reaching 都可成功控制姿勢，回到原位，且雙腳始終未跨步（膝蓋可彎）。', k:'9 次全成功 + 腳未跨步。'},
+  'score-g-ht': {t:'G — Good（頭幹控制）', b:'可自主轉動頭部/軀幹，並保持在任何位置，4 個方向均可自主完成。', k:''},
+};
+
+function td(key) {
+  const d = treeDetails[key]; if (!d) return;
+  document.getElementById('dtitle-ss').textContent = d.t;
+  document.getElementById('dbody-ss').textContent = d.b;
+  const k = document.getElementById('dkey-ss');
+  k.textContent = d.k; k.style.display = d.k ? 'block' : 'none';
+  const box = document.getElementById('detail-ss');
+  box.className = 'detail-box show';
+  box.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function td2(key, tab) {
+  const d = treeDetails[key]; if (!d) return;
+  document.getElementById('dtitle-'+tab).textContent = d.t;
+  document.getElementById('dbody-'+tab).textContent = d.b;
+  const k = document.getElementById('dkey-'+tab);
+  k.textContent = d.k; k.style.display = d.k ? 'block' : 'none';
+  const box = document.getElementById('detail-'+tab);
+  box.className = 'detail-box show';
+  box.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function closeDetail(tab) {
+  document.getElementById('detail-'+tab).className = 'detail-box';
+}
+
+function switchTree(id) {
+  document.querySelectorAll('.tree-flow').forEach(e => e.classList.remove('active'));
+  document.querySelectorAll('.tree-tab').forEach(e => e.classList.remove('active'));
+  document.getElementById('tree-'+id).classList.add('active');
+  event.target.classList.add('active');
+  ['ss','sd','ts','td','ht'].forEach(t => { const b=document.getElementById('detail-'+t); if(b) b.className='detail-box'; });
+}
+
+// ─── MAIN NAV ───
+function switchMain(id) {
+  document.querySelectorAll('.section-panel').forEach(e => e.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(e => e.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ─── INIT ───
+shuffled = shuffle(questions);
+renderQuestion();
+</script>
+</body>
+</html>
